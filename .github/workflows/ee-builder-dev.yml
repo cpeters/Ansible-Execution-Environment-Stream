@@ -27,7 +27,7 @@ jobs:
 
       - name: Install ansible dependencies
         run: |
-          apt install -y ansible-core 
+          sudo apt install -y ansible-core 
           
       - name: Run ansible playbook
         run: |
