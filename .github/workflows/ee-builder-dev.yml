@@ -24,10 +24,6 @@ jobs:
       - name: Install Python Dependencies
         run: |
           if [ -f requirements.txt ]; then python3 -m pip install -r requirements.txt; fi
-
-      - name: Install ansible dependencies
-        run: |
-          sudo apt install -y ansible-core 
           
       - name: Run ansible playbook
         run: |
