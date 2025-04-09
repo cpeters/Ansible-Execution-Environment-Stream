@@ -17,10 +17,6 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v3
-      - uses: gacts/install-podman@v1
-        #with:
-        #  kind: unstable # `testing` by default
-        #  qemu: true # `false` by default
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
