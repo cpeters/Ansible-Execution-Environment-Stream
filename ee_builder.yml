@@ -11,6 +11,7 @@
     ee_ah_host: galaxy.ansible.com
     # ee_ah_token:
     ee_builder_dir_clean: false
+    ee_container_runtime: docker
     builder_dir: "."
     ee_version: 3
     ee_list:
