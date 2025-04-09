@@ -5,4 +5,4 @@ collections:
   - name: infra.ah_configuration
   - name: containers.podman
   - name: community.general
-  - name: containers.docker
+  - name: community.docker
