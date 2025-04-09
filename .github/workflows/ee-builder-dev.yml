@@ -10,7 +10,7 @@ on:
 jobs:
   Ansible:
     name: 'Ansible'
-    runs-on: ubuntu-latest
+    runs-on: github-arc-runner
     environment: dev
     permissions:
       contents: read
