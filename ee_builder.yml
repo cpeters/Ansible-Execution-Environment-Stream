@@ -2,6 +2,8 @@
 - name: Playbook to create Execution Environment
   hosts: localhost
   gather_facts: false
+  collections:
+    - community.docker
   vars:
     ee_verbosity: 3
     # ee_registry_dest: index.docker.io/r3dact3d
