@@ -28,7 +28,7 @@ jobs:
       - name: Run ansible playbook
         run: |
           ansible-galaxy collection install -r collections/requirements.yml
-          ansible-playbook ee_builder.yml \
+          ansible-playbook -vvvv ee_builder.yml \
             -e "ansible_python_interpreter=`which python3`" \
             -e "ee_registry_dest=${{ vars.EE_REGISTRY }}" \
             -e "ee_registry_username=${{ vars.EE_REGISTRY_USERNAME }}" \
