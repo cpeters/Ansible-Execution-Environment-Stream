@@ -11,15 +11,15 @@ jobs:
   Ansible:
     name: 'Ansible'
     runs-on: github-arc-runners
-    environment: dev
-    permissions:
-      contents: read
-      pull-requests: write
     container:
       image: quay.io/chpeters/arc-runner:latest
       credentials:
         username: ${{ secrets.quay_username }}
         password: ${{ secrets.quay_password }}
+    environment: dev
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v5
