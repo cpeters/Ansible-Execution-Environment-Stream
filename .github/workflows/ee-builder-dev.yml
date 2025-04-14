@@ -10,7 +10,7 @@ on:
 jobs:
   Ansible:
     name: 'Ansible'
-    runs-on: github-arc-runners
+    runs-on: github-arc-runners-podman
     environment: dev
     permissions:
       contents: read
