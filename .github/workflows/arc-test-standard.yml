@@ -1,4 +1,4 @@
-name: ARC Demo
+name: Test standard image
 on:
   workflow_dispatch:
 
