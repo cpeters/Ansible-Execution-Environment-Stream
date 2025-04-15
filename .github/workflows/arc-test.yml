@@ -1,4 +1,4 @@
-name: ARC Demo
+name: Test custom image
 on:
   workflow_dispatch:
 
@@ -7,4 +7,4 @@ jobs:
     # You need to use the INSTALLATION_NAME from the previous step
     runs-on: github-arc-runners-podman
     steps:
-    - run: echo "🎉 This job uses runner scale set runners!"
+    - run: echo "🎉 This job uses custom runner image with podman"
