@@ -1,0 +1,86 @@
+FROM --platform=linux/amd64 registry.access.redhat.com/ubi9/ubi:9.5
+
+# Arguments
+ARG TARGETPLATFORM=amd64
+ARG RUNNER_VERSION=2.322.0
+ARG RUNNER_CONTAINER_HOOKS_VERSION=0.6.1
+
+# The UID env var should be used in child Containerfile.
+ENV UID=1000
+ENV GID=0
+ENV USERNAME="runner"
+
+# This is to mimic the OpenShift behaviour of adding the dynamic user to group 0.
+RUN useradd -G 0 $USERNAME
+ENV USER_HOME=/home/${USERNAME}
+
+# Make and set the working directory
+RUN mkdir -p ${USER_HOME}/.config/containers \
+  && chown -R $USERNAME:$GID $HOME
+
+#WORKDIR $HOME
+
+#ARG USER_HOME_DIR="/home/runner"
+#ARG WORK_DIR="/projects"
+#ENV HOME=${USER_HOME_DIR}
+ENV BUILDAH_ISOLATION=chroot
+COPY --chown=0:0 entrypoint.sh /
+
+RUN dnf --disableplugin=subscription-manager install -y openssl compat-openssl11 libbrotli git tar shadow-utils bash zsh podman buildah skopeo unzip; \
+    dnf update -y ; \
+    dnf clean all ; \
+    #
+    # Setup for root-less podman
+    #
+    # mkdir -p "${HOME}"/.config/containers ; \
+    # chown "${USERNAME}":0 "${HOME}"/.config/containers ; \
+    setcap cap_setuid+ep /usr/bin/newuidmap ; \
+    setcap cap_setgid+ep /usr/bin/newgidmap ; \
+    touch /etc/subgid /etc/subuid ; \
+    chown 0:0 /etc/subgid ; \
+    chown 0:0 /etc/subuid ; \
+    chown 0:0 /etc/passwd ; \
+    chown 0:0 /etc/group ; \
+    chmod +x /entrypoint.sh ; \
+    chmod -R g=u /etc/passwd /etc/group /etc/subuid /etc/subgid /home
+
+WORKDIR /home/runner
+
+# Install kubectl
+# COPY images/software/kubectl.sh kubectl.sh
+# RUN bash kubectl.sh && rm kubectl.sh
+
+RUN test -n "$TARGETPLATFORM" || (echo "TARGETPLATFORM must be set" && false)
+
+# Runner download supports amd64 as x64
+RUN export ARCH=$(echo ${TARGETPLATFORM} | cut -d / -f2) \
+  && if [ "$ARCH" = "amd64" ]; then export ARCH=x64 ; fi \
+  && curl -L -o runner.tar.gz https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${ARCH}-${RUNNER_VERSION}.tar.gz \
+  && tar xzf ./runner.tar.gz \
+  && rm runner.tar.gz \
+  && ./bin/installdependencies.sh \
+  && dnf clean all
+
+# Install container hooks
+RUN curl -f -L -o runner-container-hooks.zip https://github.com/actions/runner-container-hooks/releases/download/v${RUNNER_CONTAINER_HOOKS_VERSION}/actions-runner-hooks-k8s-${RUNNER_CONTAINER_HOOKS_VERSION}.zip \
+  && unzip ./runner-container-hooks.zip -d ./k8s \
+  && rm runner-container-hooks.zip
+
+RUN chown -R $USERNAME:$GID /home/runner
+
+# Squash it!
+#FROM scratch AS final
+#
+## The UID env var should be used in child Containerfile.
+#ENV UID=1001
+#ENV GID=123
+#ENV USERNAME="runner"
+#
+USER $USERNAME
+#
+#COPY --from=build / /
+
+ENTRYPOINT [ "/entrypoint.sh" ]
+
+CMD [ "tail", "-f", "/dev/null" ]
+
