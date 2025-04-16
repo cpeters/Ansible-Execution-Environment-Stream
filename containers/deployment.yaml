@@ -1,0 +1,55 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: arc-runner
+  namespace: aaa-test
+  labels:
+    app: arc-runner
+    app.kubernetes.io/component: arc-runner
+    app.kubernetes.io/instance: arc-runner
+    app.kubernetes.io/name: arc-runner
+    app.kubernetes.io/part-of: arc-runner-app
+    app.openshift.io/runtime-namespace: aaa-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arc-runner
+  template:
+    metadata:
+      annotations:
+        openshift.io/scc: nested-podman-scc
+      labels:
+        app: arc-runner
+        deployment: arc-runner
+    spec:
+      containers:
+        - name: arc-runner
+          image: 'quay.io/chpeters/arc-runner:ubi9'
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - SETUID
+                - SETGID
+            allowPrivilegeEscalation: true
+            procMount: Unmasked
+      hostUsers: false
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+      schedulerName: default-scheduler
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
