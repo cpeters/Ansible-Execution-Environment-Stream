@@ -1,0 +1,75 @@
+FROM registry.fedoraproject.org/fedora-minimal:latest
+ARG FLAVOR=stable
+
+ARG ARCH=arm64
+ENV UID=1000
+ENV GID=0
+ENV USERNAME="runner"
+
+# This is to mimic the OpenShift behaviour of adding the dynamic user to group 0.
+RUN useradd -G 0 $USERNAME
+ENV USER_HOME=/home/${USERNAME}
+
+ENV _CONTAINERS_USERNS_CONFIGURED=""
+ENV BUILDAH_ISOLATION=chroot
+COPY --chown=0:0 /entrypoint.sh /
+
+ARG RPM_PACKAGES="ansible git buildah skopeo unzip podman fuse-overlayfs openssh-clients ucpp python3 python3-pip slirp4netns"
+ARG PIP_PACKAGES="ansible-navigator ansible-builder ansible-runner"
+
+RUN dnf install -y ${RPM_PACKAGES} --exclude container-selinux \
+  && dnf update -y \
+  && dnf clean all \
+  && pip3 install ${PIP_PACKAGES} \
+  && ansible-galaxy collection install infra.ee_utilities
+#
+# Setup for root-less podman
+#
+RUN setcap cap_setuid+ep /usr/bin/newuidmap \
+  && setcap cap_setgid+ep /usr/bin/newgidmap \
+  && touch /etc/subgid /etc/subuid \
+  && chown 0:0 /etc/subgid \
+  && chown 0:0 /etc/subuid \
+  && chown 0:0 /etc/passwd \
+  && chown 0:0 /etc/group \
+  && chmod +x /entrypoint.sh \
+  && chmod -R g=u /etc/passwd /etc/group /etc/subuid /etc/subgid /home
+
+COPY --chmod=644 /containers.conf /etc/containers/containers.conf
+
+# Make and set the working directory
+RUN mkdir -p ${USER_HOME}/.config/containers \
+  && mkdir -p ${USER_HOME}/.local/share/containers \
+  && chown -R $USERNAME:$GID -R ${USER_HOME}
+
+# Copy & modify the defaults to provide reference if runtime changes needed.
+# Changes here are required for running with fuse-overlay storage inside container.
+RUN sed -e 's|^#mount_program|mount_program|g' \
+  -e '/additionalimage.*/a "/var/lib/shared",' \
+  -e 's|^mountopt[[:space:]]*=.*$|mountopt = "nodev,fsync=0"|g' \
+  /usr/share/containers/storage.conf \
+  > /etc/containers/storage.conf 
+
+# Note VOLUME options must always happen after the chown call above
+# RUN commands can not modify existing volumes
+VOLUME /var/lib/containers
+
+RUN mkdir -p /var/lib/shared/overlay-images \
+  /var/lib/shared/overlay-layers \
+  /var/lib/shared/vfs-images \
+  /var/lib/shared/vfs-layers \
+  && touch /var/lib/shared/overlay-images/images.lock \
+  && touch /var/lib/shared/overlay-layers/layers.lock \
+  && touch /var/lib/shared/vfs-images/images.lock \
+  && touch /var/lib/shared/vfs-layers/layers.lock
+
+RUN mkdir /runner \
+  && chown -R $USERNAME:$GID /runner
+
+WORKDIR /home/runner
+
+USER $USERNAME
+
+ENTRYPOINT [ "/entrypoint.sh" ]
+
+CMD [ "tail", "-f", "/dev/null" ]
