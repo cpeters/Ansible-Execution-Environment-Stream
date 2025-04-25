@@ -71,5 +71,3 @@ WORKDIR /home/runner
 USER $USERNAME
 
 ENTRYPOINT [ "/entrypoint.sh" ]
-
-CMD [ "tail", "-f", "/dev/null" ]
